@@ -1,0 +1,58 @@
+# quant-acp 的树外 patch overlay：只做两件事——
+#   1. 把 quant-mcp（也就是 mcp_server.py 里的 query_prices）接进来；
+#   2. 挂上 quant-tool-policy，把除 query_prices 外的一切工具默认拒绝。
+#
+# 目前是套在官方 `acp` 模板上用 --patch 挂载，还不是手册 7.1 节说的
+# "不继承 dsh-base 的独立组合"——dsh-base 挂的 bash/文件工具目前还在工具
+# 目录里，但 quant-tool-policy 会在 pre-execute 拦下所有不在白名单里的
+# 调用，所以 Agent 实际上碰不到它们。做成真正独立的 Cordis 树是后面的
+# 加固工作，等 Swift 客户端要接了、需要真的压缩工具/提示词体积时再做。
+#
+# QUANT_ASSISTANT_DB_PATH 目前是占位符：sp500.db 的真实位置还没定
+# （README 和手册第 23 节都留着这个决定），先指向 quant-assistant 项目
+# 内的 data/sp500.db。真的定下来之后改这一行就行，mcp_server.py 那边不用动。
+- insert:
+    - id: mcp-quant
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: quant
+        transport: stdio
+        command: /opt/homebrew/bin/uv
+        args:
+          - run
+          - --project
+          - /Users/liu/code/quant-assistant
+          - python
+          - mcp_server.py
+        cwd: /Users/liu/code/quant-assistant
+        env:
+          QUANT_ASSISTANT_DB_PATH: /Users/liu/code/quant-assistant/data/sp500.db
+        failOnStartupError: false
+
+    - id: quant-tool-policy
+      name: /Users/liu/code/quant-assistant/dsh/quant-tool-policy.ts
+
+# 角色说明：官方 acp 模板把 personaPrefix 设成 "You are a coding agent…"，
+# 模型据此自称能读写文件、跑 shell、联网，但这些在 quant-acp 里都会被
+# quant-tool-policy 拦下。这里改成量化研究助手的真实定位和真实工具清单。
+# 工具白名单本身仍以 quant-tool-policy.ts 为准，这段只影响模型"以为"自己能做什么。
+- id: system-prompt
+  config:
+    personaPrefix: |-
+      你是一个本地量化研究助手，由 {{model}} 模型驱动，运行在用户自己的 Mac 上，服务对象是正在学习量化投资的用户本人。
+
+      你只能调用下面这些工具（都来自本地的 quant MCP server）：
+      - query_prices：查本地数据库里的复权日线（open/high/low/close/volume），约 50 支标普 500 成分股，2016-09 起。
+      - list_factors / show_factor：查看已有因子（内置 momentum、reversal，以及因子库里保存的）和它们的定义。
+      - factor_draft_create / factor_draft_add_step / factor_draft_remove_last_step / factor_draft_set_output / factor_draft_delete / factor_draft_save：用 add/subtract/multiply/divide/shift 五种运算一步步拼新因子。
+      - preview_factor：在真实行情上试算因子，看覆盖率、分布和 Rank IC。
+      - run_factor_backtest：截面分位数多空回测，可设权重、调仓间隔、佣金和滑点。
+
+      你没有 shell、读写文件、联网搜索、子代理等能力；这些工具即使出现在工具列表里，调用也一定会被拒绝，不要尝试，也不要在介绍自己时声称拥有它们。用户要的东西超出上述工具范围时，直接说明做不到，并说明能用现有工具做到哪一步。
+
+      做研究时：
+      - 默认用中文回答，可以用 Markdown（标题、列表、表格），界面会渲染。
+      - 所有数字必须来自工具返回的结果，不要编造或凭记忆给出行情、指标。
+      - 窗口长度之类的数字尽量做成因子参数，而不是写死。
+      - 提醒用户关键局限：股票池是当前成分股（有幸存者偏差）、样本只有约 50 支、回测默认不计费用除非显式设置佣金和滑点。
+    personaSuffix: 当前工作目录是 {{cwd}}（只作为背景信息，你无法读写这里的文件）。

@@ -1,0 +1,31 @@
+name: skip_month_mom
+description: '跳过最近 skip 天的动量: price 先挪 skip 天得 near, near 再挪 window 天得 far, 取 near/far-1'
+params:
+- window
+- skip
+steps:
+- id: near
+  op: shift
+  input:
+    ref: price
+  by:
+    param: skip
+- id: far
+  op: shift
+  input:
+    ref: near
+  by:
+    param: window
+- id: ratio
+  op: divide
+  a:
+    ref: near
+  b:
+    ref: far
+- id: result
+  op: subtract
+  a:
+    ref: ratio
+  b:
+    const: 1
+output: result

@@ -1,0 +1,22 @@
+{
+  "name": "quant-assistant",
+  "version": "0.1.0-dev.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "dsh": "dsh"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "0.1.6-alpha.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "4.22.4",
+    "typescript": "6.0.3",
+    "vitest": "4.1.8"
+  }
+}

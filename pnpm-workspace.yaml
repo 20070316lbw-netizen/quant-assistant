@@ -1,0 +1,13 @@
+# v0.1.0 只使用 ACP/MCP，不需要 DSH 的 Office 文档转换引擎。
+# 只跳过 LibreOffice 的可选平台包，保留 DSH 其他原生组件。
+ignoredOptionalDependencies:
+  - '@deepseek-ai/libreoffice-kit-*'
+
+# 为当前锁定依赖完成官方安装步骤，不对未知包开放构建脚本。
+allowBuilds:
+  '@deepseek-ai/dsh-subprocess-local@0.1.6-alpha.2': true
+  '@google/genai@1.52.0': false
+  'esbuild@0.28.2': true
+  'koffi@3.3.1': true
+  'node-pty@1.2.0-beta.15': true
+  'protobufjs@7.6.6': false

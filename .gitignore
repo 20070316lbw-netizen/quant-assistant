@@ -1,0 +1,27 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+node_modules/
+dist/
+.build/
+DerivedData/
+.DS_Store
+.env
+.env.*
+!.env.example
+*.db
+*.duckdb
+*.wal
+.dsh/
+
+# Agent 拼因子时的未保存草稿(factor_lab.py); 保存后的 factors/*.yaml 照常进 git
+factors/drafts/
+*.yaml.tmp
+
+# Xcode 个人界面状态（每人每台机器不同）
+xcuserdata/
+
+# Claude 会话里的临时产出（草图、截图）；正式图标在 assets/branding/
+Claude outputs/

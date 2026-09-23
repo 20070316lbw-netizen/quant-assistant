@@ -1,0 +1,24 @@
+name: ma_deviation
+description: '均线偏离: 今天价格相对 N 天前价格的偏离, price / shift(price, N) - 1'
+params:
+- window
+steps:
+- id: past_price
+  op: shift
+  input:
+    ref: price
+  by:
+    param: window
+- id: ratio
+  op: divide
+  a:
+    ref: price
+  b:
+    ref: past_price
+- id: result
+  op: subtract
+  a:
+    ref: ratio
+  b:
+    const: 1
+output: result

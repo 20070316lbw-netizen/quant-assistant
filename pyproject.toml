@@ -1,0 +1,34 @@
+[project]
+name = "quant-assistant"
+version = "0.1.0.dev0"
+description = "本地量化研究助手的 Python MCP 开发环境"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "liudb",
+    "sources",
+    "minibacktest",
+    "mcp>=1,<2",
+]
+
+[tool.uv]
+package = false
+# minibacktest 自己的 pyproject 把 liudb/sources 指向 GitHub; 这里强制统一用
+# 本机相邻目录的 editable 版本, 否则 uv 会报"同一个包两个不同来源"的冲突。
+override-dependencies = ["liudb", "sources"]
+
+[tool.uv.sources]
+liudb = { path = "../liudb", editable = true }
+sources = { path = "../sources", editable = true }
+minibacktest = { path = "../minibacktest", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.8",
+]
+
+[tool.pytest.ini_options]
+# package = false 没有把项目装成可导入的包，靠这个把仓库根目录（放 mcp_server.py
+# 的地方）加进 sys.path，测试里才能 `from mcp_server import query_prices_impl`。
+pythonpath = ["."]
