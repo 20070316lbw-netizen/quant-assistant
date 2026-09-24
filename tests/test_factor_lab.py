@@ -131,6 +131,49 @@ def test_preview_draft_in_subprocess(db_path):
     assert r["resource_limits"]["cpu_s"] == fl.WORKER_CPU_S
 
 
+def test_rolling_and_rank_steps_can_be_previewed_before_output_is_set(db_path):
+    fl.draft_create("trend_rank", ["window"])
+    fl.draft_add_step("trend_rank", "average", "rolling_mean", input={"ref": "price"},
+                      window={"param": "window"})
+    fl.draft_add_step("trend_rank", "deviation", "divide", a={"ref": "price"}, b={"ref": "average"})
+    view = fl.draft_add_step("trend_rank", "ranked", "cross_section_rank", input={"ref": "deviation"})
+    assert view["ready_to_save"] is False
+    assert "rolling_std" in fl.list_factors()["ops"]
+
+    result = fl.preview("trend_rank", {"window": 20}, None, "2023-01-01", "2024-12-31", db_path,
+                        step_id="ranked")
+    assert result["inspected_step"] == "ranked"
+    assert 0.8 < result["coverage"] < 1.0
+    assert result["distribution"]["min"] > 0
+    assert result["distribution"]["max"] <= 1
+    assert "output" not in fl.show_factor("trend_rank")["spec"]
+
+    fl.draft_set_output("trend_rank", "ranked")
+    fl.draft_save("trend_rank")
+    saved = fl.preview("trend_rank", {"window": 20}, None, "2023-01-01", "2024-12-31", db_path)
+    assert saved["rank_ic"]["n_periods"] > 0
+    backtest = fl.backtest([{"name": "trend_rank", "params": {"window": 20}}], None,
+                           "2023-01-01", "2024-12-31", db_path, freq=10, n_quantiles=4)
+    assert backtest["metrics"]["return_pct"] is not None
+
+
+def test_invalid_rolling_window_is_rejected_without_changing_draft(db_path):
+    fl.draft_create("bad_window", ["window"])
+    with pytest.raises(FactorLabError, match="滚动窗口"):
+        fl.draft_add_step("bad_window", "r", "rolling_max", input={"ref": "price"},
+                          window={"const": 0})
+    assert fl.show_factor("bad_window")["spec"]["steps"] == []
+
+    fl.draft_add_step("bad_window", "r", "rolling_max", input={"ref": "price"},
+                      window={"param": "window"})
+    with pytest.raises(FactorLabError, match="没有步骤"):
+        fl.preview("bad_window", {"window": 5}, None, "2023-01-01", "2024-12-31", db_path,
+                   step_id="missing")
+    with pytest.raises(FactorLabError, match="滚动窗口"):
+        fl.preview("bad_window", {"window": -1}, None, "2023-01-01", "2024-12-31", db_path,
+                   step_id="r")
+
+
 def test_preview_reports_runtime_errors(db_path):
     _build_gap_momentum()
     with pytest.raises(FactorLabError, match="未来函数"):

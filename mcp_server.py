@@ -139,7 +139,7 @@ def query_prices(
 
 # ------------------------------------------------------------------ 拼因子工具
 #
-# 因子只能用 minibacktest 的五种 op(add/subtract/multiply/divide/shift)拼, 每个
+# 因子只能用 minibacktest 白名单里的 op 拼, 每个
 # 操作数写成 {"const": 数字} / {"param": 参数名} / {"ref": "price" 或前面某步的 id}。
 # 草稿每加一步就做一次完整静态校验; 试算和回测放在带资源上限的子进程里跑。
 
@@ -183,22 +183,27 @@ def factor_draft_add_step(
     b: Operand | None = None,
     input: Operand | None = None,
     by: Operand | None = None,
+    window: Operand | None = None,
 ) -> dict:
     """给草稿追加一步计算, 追加前做完整校验, 不合法直接报错且不落盘。
 
     Args:
         name: 草稿名。
         step_id: 这一步的 id(小写蛇形), 后面的步骤用 {"ref": step_id} 引用它。
-        op: add / subtract / multiply / divide(需要 a、b) 或 shift(需要 input、by)。
+        op: add/subtract/multiply/divide(需要 a、b); shift(需要 input、by);
+            rolling_mean/rolling_std/rolling_min/rolling_max(需要 input、window);
+            cross_section_rank(只需要 input)。
             shift 把整张表往后挪 by 行(by 必须是非负整数; 负数会用到未来数据, 一律拒绝),
-            input 必须是 {"ref": ...}。
-        a, b, input, by: 操作数, 三种写法之一: {"const": 数字}、{"param": 参数名}、
-            {"ref": "price" 或前面某步的 id}。"price" 是复权收盘价宽表(行=日期, 列=标的)。
+            input 必须是 {"ref": ...}。滚动窗口为 1~512 个交易日, 需完整窗口才产出值;
+            cross_section_rank 在同一日期的有限值标的之间按升序计算百分位排名。
+        a, b, input, by, window: 操作数, 三种写法之一: {"const": 数字}、
+            {"param": 参数名}、{"ref": "price" 或前面某步的 id}。
+            window 只接受 const 或 param。"price" 是复权收盘价宽表(行=日期, 列=标的)。
 
     Returns:
         草稿当前状态: spec、YAML、下一步能引用的 id、是否可以保存。
     """
-    return factor_lab.draft_add_step(name, step_id, op, a=a, b=b, input=input, by=by)
+    return factor_lab.draft_add_step(name, step_id, op, a=a, b=b, input=input, by=by, window=window)
 
 
 @mcp.tool()
@@ -248,6 +253,26 @@ def preview_factor(
         以及每隔 horizon 天一个截面的 Rank IC 均值/标准差/ICIR/正值占比。
     """
     return factor_lab.preview(name, params, tickers, start, end, db_path=_resolve_db_path(), horizon=horizon)
+
+
+@mcp.tool()
+def preview_factor_step(
+    name: str,
+    step_id: str,
+    start: str,
+    end: str,
+    params: dict[str, int | float] | None = None,
+    tickers: list[str] | None = None,
+    horizon: int = 21,
+) -> dict:
+    """试算因子或草稿的一个中间步骤, 无需先指定最终 output, 也不会修改草稿。
+
+    返回该步骤的覆盖率、分布、最新截面和 Rank IC, 用来排查空值、无穷值或
+    方向不对的问题。参数、日期和标的限制与 preview_factor 相同。
+    """
+    return factor_lab.preview(
+        name, params, tickers, start, end, db_path=_resolve_db_path(), horizon=horizon, step_id=step_id
+    )
 
 
 @mcp.tool()

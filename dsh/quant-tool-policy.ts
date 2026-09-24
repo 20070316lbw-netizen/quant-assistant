@@ -15,7 +15,7 @@
  * MCP 工具真正实现、测试通过，再加一行。
  *
  * 拼因子工具能直接放行（不需要人工确认）的理由：它们只能写 factors/ 下的
- * YAML（草稿可删、已保存的因子不能删），计算只能用 minibacktest 的五种数值
+ * YAML（草稿可删、已保存的因子不能删），计算只能用 minibacktest 白名单里的数值
  * op，试算/回测跑在带 CPU/内存/超时上限的子进程里——没有执行任意代码、
  * 读写任意文件或联网的路径。
  */
@@ -38,6 +38,7 @@ export const ALLOWED_TOOLS: ReadonlySet<string> = new Set([
   'mcp__quant__factor_draft_delete',
   'mcp__quant__factor_draft_save',
   'mcp__quant__preview_factor',
+  'mcp__quant__preview_factor_step',
   'mcp__quant__run_factor_backtest',
 ])
 

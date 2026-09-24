@@ -13,14 +13,14 @@ dependencies = [
 
 [tool.uv]
 package = false
-# minibacktest 自己的 pyproject 把 liudb/sources 指向 GitHub; 这里强制统一用
-# 本机相邻目录的 editable 版本, 否则 uv 会报"同一个包两个不同来源"的冲突。
-override-dependencies = ["liudb", "sources"]
 
+# 三个依赖都从 GitHub 拉(跟 minibacktest 自己 pyproject 里的来源一致, 不会冲突)。
+# 版本锁在 uv.lock 的具体 commit 上; 上游有新提交后用
+# `uv lock --upgrade-package <名字>` 再 `uv sync` 更新。
 [tool.uv.sources]
-liudb = { path = "../liudb", editable = true }
-sources = { path = "../sources", editable = true }
-minibacktest = { path = "../minibacktest", editable = true }
+liudb = { git = "https://github.com/20070316lbw-netizen/liudb.git" }
+sources = { git = "https://github.com/20070316lbw-netizen/sources.git" }
+minibacktest = { git = "https://github.com/20070316lbw-netizen/minibacktest.git" }
 
 [dependency-groups]
 dev = [

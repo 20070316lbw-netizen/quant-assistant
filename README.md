@@ -8,7 +8,7 @@
 
 | 路径 | 内容 |
 | --- | --- |
-| `mcp_server.py` | FastMCP 服务：`query_prices` + 拼因子的 10 个工具 |
+| `mcp_server.py` | FastMCP 服务：`query_prices` + 拼因子的 11 个工具 |
 | `factor_lab.py` / `factor_worker.py` | 因子草稿管理；带 CPU/内存/超时上限的计算子进程 |
 | `factors/` | Agent（或人）保存的因子 YAML，草稿在 `factors/drafts/`（不进 git） |
 | `dsh/` | `quant-tool-policy.ts` 工具白名单 + 测试，`quant-acp.patch.yml` profile 覆盖（MCP 接入、白名单、系统提示） |
@@ -16,7 +16,7 @@
 | `scripts/seed_prices.py` | 一次性拉取 50 支标的十年日线写入 `data/sp500.db`（数据库不进 git） |
 | `tests/` | pytest：MCP 工具与拼因子 |
 
-依赖本机相邻的三个仓库（uv editable 安装）：[`../liudb`](https://github.com/20070316lbw-netizen/liudb)、[`../sources`](https://github.com/20070316lbw-netizen/sources)、[`../minibacktest`](https://github.com/20070316lbw-netizen/minibacktest)。拼因子工具用到的 minibacktest 注册表新接口（`validate_spec`、`compile_spec`、`load_specs`、`MINIBACKTEST_EXTRA_FACTOR_DIRS`）是 2026-09-23 在本机加的，需要 minibacktest 那边也提交之后，别的机器上克隆才能直接用。
+依赖三个 GitHub 仓库（uv 按 git 依赖安装，版本锁在 `uv.lock` 的具体 commit 上）：[liudb](https://github.com/20070316lbw-netizen/liudb)、[sources](https://github.com/20070316lbw-netizen/sources)、[minibacktest](https://github.com/20070316lbw-netizen/minibacktest)。上游有新提交后，用 `uv lock --upgrade-package <包名>` 再 `uv sync` 更新。
 
 ## 维护方式与代码来源
 
@@ -24,7 +24,7 @@
 
 - Agent 运行框架：[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，由 DeepSeek AI 开发，使用 [MIT 许可证](https://github.com/deepseek-ai/deepseek-harness/blob/master/LICENSE)。安装官方 npm 包 `@deepseek-ai/dsh`，初始版本固定为 `0.1.6-alpha.2`，与本机参考源码一致。
 - Python MCP SDK：[modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk)。
-- 本地价格数据接口：本机相邻项目 `../liudb`，由 uv 以 editable 方式安装。
+- 本地价格数据接口：[liudb](https://github.com/20070316lbw-netizen/liudb)，由 uv 从 GitHub 安装。
 
 DSH 的[插件发布文档](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/user/develop/basic/publish.md)和 [CLI 文档](https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/cli/README.md)支持树外 bundle／plugin。未来将本项目的 policy 编译为 ESM JavaScript 后，以独立包安装进 `quant-acp` profile。此处只记录官方支持的接入方式，实际 profile 加载与权限行为仍需在第一片垂直切片中验证。
 
@@ -46,7 +46,7 @@ DSH 的[插件发布文档](https://github.com/deepseek-ai/deepseek-harness/blob
 | DSH | 0.1.6-alpha.2 | 官方 npm 包，安装在本项目 `node_modules` |
 | TypeScript / tsx / Vitest | 6.0.3 / 4.22.4 / 4.1.8 | 本项目开发依赖；用于 policy 编译、运行与行为测试 |
 | MCP Python SDK | 1.30.0 | 本项目 `.venv`，限制在 1.x；工具开发使用 `mcp.server.fastmcp.FastMCP` |
-| liudb / DuckDB | 0.1.0 / 1.5.5 | liudb 从 `../liudb` 以 editable 方式安装，DuckDB 随其依赖安装 |
+| liudb / DuckDB | 0.1.0 / 1.5.5 | liudb 从 GitHub 安装（锁定 commit），DuckDB 随其依赖安装 |
 | pytest / Ruff | 9.1.1 / 0.16.8 | 本项目 Python 测试与代码检查工具 |
 | Xcode | 27.0（27A266a） | 用户通过 App Store 安装，首次启动检查通过 |
 | LaTeX | 已有 `pdflatex` / `xelatex` / `lualatex` | 保留原安装，v0.1.0 暂不用 |
@@ -60,7 +60,7 @@ uv sync --locked
 pnpm install --frozen-lockfile
 ```
 
-本机需保留相邻的 `../liudb` 项目；editable 安装会直接使用其源码更新。Python 固定使用已有 3.12，后续命令通过 `uv run` 使用项目环境。
+liudb / sources / minibacktest 均从 GitHub 拉取，本机不需要保留相邻目录。Python 固定使用已有 3.12，后续命令通过 `uv run` 使用项目环境。
 
 ```sh
 uv run python --version
@@ -72,7 +72,7 @@ pnpm exec dsh --version
 pnpm exec dsh --help
 ```
 
-DSH 安装在项目内，终端从本目录执行 `pnpm exec dsh ...`。未来 Swift 的 `ProcessSupervisor` 可使用绝对路径 `/Users/liu/code/quant-assistant/node_modules/.bin/dsh`，并显式传入 Node、uv 的 PATH。
+DSH 安装在项目内，终端从本目录执行 `pnpm exec dsh ...`。未来 Swift 的 `ProcessSupervisor` 可使用绝对路径 `/Users/liu/quant/quant-assistant/node_modules/.bin/dsh`，并显式传入 Node、uv 的 PATH。
 
 `pnpm-workspace.yaml` 仅跳过 LibreOffice 的可选平台包，避免下载与当前链路无关的 Office 转换引擎；DSH 其他原生组件保留。依赖构建脚本按已检查的具体版本配置。此设置不提供工具权限隔离，allow／deny 策略仍需单独实现。
 
@@ -207,6 +207,7 @@ MCP 工具（`mcp_server.py` 注册，白名单 `dsh/quant-tool-policy.ts` 同�
 | `factor_draft_delete` | 删草稿（不能删已保存的因子） |
 | `factor_draft_save` | 完整校验后存进因子库 |
 | `preview_factor` | 在真实行情上试算（草稿也行）：覆盖率、分布（含 inf 个数）、最新截面前后 5 名、Rank IC 均值/ICIR/正值占比 |
+| `preview_factor_step` | 试算某个中间步骤；草稿还没指定最终 `output` 时也能用，且不修改草稿 |
 | `run_factor_backtest` | 用已保存/内置因子跑 minibacktest `Backtester`（分位数多空，可设权重、调仓间隔、佣金滑点）：指标、分位组前瞻收益、月末净值 |
 
 存放位置：保存的因子在 `factors/<名字>.yaml`（可用 `QUANT_ASSISTANT_FACTOR_DIR` 改），会进 git；草稿在 `factors/drafts/`，已加进 `.gitignore`。子进程通过 `MINIBACKTEST_EXTRA_FACTOR_DIRS` 把 `factors/` 挂进 minibacktest 的注册表，所以 `Backtester` 按名字就能取到这里保存的因子。
@@ -254,6 +255,12 @@ MCP 工具（`mcp_server.py` 注册，白名单 `dsh/quant-tool-policy.ts` 同�
 
 已验证：`swift test` 28 个全过；重启 App 截图确认工具栏钥匙按钮、状态栏"设置 API key 查看余额"和用量条都在。余额数字要等你在设置里粘贴 key 后才出现。
 
+## 因子构建拓展（2026-09-23）
+
+在原有五种运算之上，新增 `rolling_mean`、`rolling_std`、`rolling_min`、`rolling_max` 和 `cross_section_rank`。Agent 仍通过 `factor_draft_add_step` 加步骤：滚动运算用 `input` 引用已有宽表、`window` 填常数或声明过的参数（1~512 个交易日）；排名只需 `input`，逐日对有限值标的算升序百分位。滚动窗口包含当日和过去，数据不满完整窗口时结果为空，不读取未来行。
+
+新增 `preview_factor_step`，可在草稿未指定最终输出时查看任意已有步骤的覆盖率、分布、最新截面和 Rank IC；试算只临时把该步骤当输出，不改草稿。运算实现与校验在相邻的 `../minibacktest` 注册表中，MCP 接口、白名单及 Agent 角色说明已同步更新。当前仍只使用复权收盘价；OHLCV 输入源留待下一步。
+
 ## 进展总览（2026-09-22 收工时的状态，2026-09-23 更新）
 
 2026-09-23 收工：今天做完了拼因子工具（含 minibacktest 注册表改造）、聊天区 Markdown 渲染、上下文用量条、多行输入框、轨迹显示工具输出、Agent 自我介绍改成量化助手口径、停止按钮、API key 存钥匙串 + 账户余额。用户在 App 里实测确认：新的自我介绍准确列出了可用工具和做不到的事；停止按钮能中途打断（聊天里出现"已停止。"）；状态栏显示余额 ¥11.55 和上下文用量。
@@ -262,7 +269,7 @@ MCP 工具（`mcp_server.py` 注册，白名单 `dsh/quant-tool-policy.ts` 同�
 
 - [x] 开发环境准备（Python/uv、Node/pnpm、DSH、MCP SDK、liudb、Xcode、LaTeX 等，见上面"开发环境"一节）
 - [x] `query_prices` MCP 工具（FastMCP 封装 liudb 的 `Query`/`loader`，6 个 pytest 用例）
-- [x] `quant-tool-policy` 白名单策略（最初只放行 `mcp__quant__query_prices`；2026-09-23 加入拼因子的 10 个工具，现在 10 个 vitest 用例）
+- [x] `quant-tool-policy` 白名单策略（最初只放行 `mcp__quant__query_prices`；现在放行拼因子的 11 个工具，10 个 vitest 用例）
 - [x] `quant-acp` DSH profile（接进 mcp-quant + quant-tool-policy，`--dump-config` 验证过组合）
 - [x] SwiftUI 文本对话第一片垂直切片（ACP stdio 通信、流式渲染、真实模型会话跑通）
 - [x] 两个真实运行时 bug 修复：`session/new` 缺 `mcpServers` 导致握手失败；`swift run` 裸可执行文件抢不到键盘焦点
@@ -274,6 +281,7 @@ MCP 工具（`mcp_server.py` 注册，白名单 `dsh/quant-tool-policy.ts` 同�
 - [x] 修复聊天区不能复制/粘贴：`AppDelegate` 把 `NSApp.setActivationPolicy(.regular)` 挪到 `applicationWillFinishLaunching`（在 SwiftUI 搭建标准 Edit 菜单之前生效，而不是之前那样在 `applicationDidFinishLaunching` 里补设——晚了菜单栏可能已经按错误的 policy 装好，Cmd+C/Cmd+V 走的是菜单 key equivalent，不是裸 keyDown）；`ContentView.swift` 里的消息气泡加了 `.textSelection(.enabled)`（SwiftUI 的 `Text` 默认不可选中）和一个直接写系统粘贴板的右键 "复制"，不依赖菜单栏路由。用户重新 `swift run` 确认过：输入框能正常 Cmd+V 粘贴，聊天气泡能框选/右键复制。
 
 - [x] Agent 拼装因子工具：一步步拼 YAML 因子、试算（Rank IC）、保存、回测，子进程 + 资源上限（见上面"Agent 拼装因子工具"一节）
+- [x] 因子构建拓展：四种滚动运算、横截面排名、中间步骤试算（见上面"因子构建拓展"一节）
 
 ### 还没做
 
@@ -282,7 +290,7 @@ MCP 工具（`mcp_server.py` 注册，白名单 `dsh/quant-tool-policy.ts` 同�
 - [ ] 更多量化工具，比如 `query_roe` 之类的基本面数据查询
 - [ ] LaTeX 报告生成 MCP 工具（手册 10 节）
 - [ ] PDF 交付卡片（工具产出报告后在聊天里给一张可点开的卡片）
-- [ ] 把 `../minibacktest` 的注册表改动提交推送（本仓库依赖它的新接口）
+- [x] 把 minibacktest 的注册表改动提交推送（本仓库依赖它的新接口；2026-09-24 已推送，依赖改为 GitHub）
 - [ ] Session resume（agent 侧断线重连/恢复历史）
 - [ ] 正式 `.xcodeproj` 打包（目前是裸 Swift Package，`swift run`/Xcode 开 `Package.swift` 都能跑，但还不是能直接分发的 App）
 - [ ] 轨迹标签目前只是"按发生顺序的一条列表"，DSH 原版有的搜索、按 turn 分组、时间线这些还没做——先按需要再加

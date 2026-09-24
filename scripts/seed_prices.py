@@ -16,9 +16,8 @@ import os
 import sys
 from datetime import date, timedelta
 
-from loguru import logger
-
 from liudb import init_schema, save_prices
+from loguru import logger
 from sources import get_prices
 from sources.map.first_50 import tickers
 

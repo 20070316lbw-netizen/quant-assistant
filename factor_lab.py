@@ -6,7 +6,7 @@
   shift/divide/..."、"指定输出"、"保存"。每一步落地成草稿 YAML 里的一个 step,
   加的那一刻就用 minibacktest 的 validate_spec(partial=True)做完整静态校验,
   写错了当场报错, 不会拖到最后才发现。
-- 词表就是 minibacktest 的 ALLOWED_OPS(add/subtract/multiply/divide/shift),
+- 词表由 minibacktest 的 ALLOWED_OPS 提供（基础算术、位移、滚动统计、截面排名），
   没有 eval/import/文件/网络原语, 所以"沙箱"要防的只是资源失控: 试算和回测
   放进子进程(factor_worker.py), 子进程先给自己设 CPU/内存上限再干活, 父进程
   再套一层墙钟超时。另外输入规模本身有上限(标的数、步数), 每一步只是一张
@@ -221,6 +221,7 @@ def draft_add_step(
     b: dict[str, Any] | None = None,
     input: dict[str, Any] | None = None,
     by: dict[str, Any] | None = None,
+    window: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     spec = _read_draft(name)
     _check_name(step_id, "step id")
@@ -229,7 +230,7 @@ def draft_add_step(
     steps = list(spec.get("steps") or [])
     if len(steps) >= MAX_STEPS:
         raise FactorLabError(f"一个因子最多 {MAX_STEPS} 步")
-    given = {"a": a, "b": b, "input": input, "by": by}
+    given = {"a": a, "b": b, "input": input, "by": by, "window": window}
     fields = OP_FIELDS[op]
     wrong = [k for k, v in given.items() if v is not None and k not in fields]
     if wrong:
@@ -363,14 +364,35 @@ def preview(
     end: str,
     db_path: str,
     horizon: int = 21,
+    step_id: str | None = None,
 ) -> dict[str, Any]:
     if not 1 <= int(horizon) <= 252:
         raise FactorLabError("horizon 取 1~252 个交易日")
-    return run_worker(
+    if step_id is None:
+        spec = _resolve_spec(name)
+    else:
+        _check_name(name)
+        _check_name(step_id, "step id")
+        draft = _draft_path(name)
+        if draft.exists():
+            spec = _read_draft(name)
+        else:
+            specs = _registered_specs()
+            if name not in specs:
+                raise FactorLabError(f"没有叫 {name!r} 的因子或草稿")
+            spec = specs[name][1]
+        if step_id not in {s["id"] for s in spec.get("steps") or []}:
+            raise FactorLabError(f"因子 {name!r} 没有步骤 {step_id!r}")
+        spec = {**spec, "output": step_id}
+        try:
+            validate_spec(spec, factor_name=name)
+        except FactorSpecError as exc:
+            raise FactorLabError(str(exc)) from exc
+    result = run_worker(
         {
             "task": "preview",
             "factor_name": name,
-            "spec": _resolve_spec(name),
+            "spec": spec,
             "params": params or {},
             "tickers": _check_tickers(tickers),
             "start": start,
@@ -379,6 +401,9 @@ def preview(
             "horizon": int(horizon),
         }
     )
+    if step_id is not None:
+        result["inspected_step"] = step_id
+    return result
 
 
 def backtest(

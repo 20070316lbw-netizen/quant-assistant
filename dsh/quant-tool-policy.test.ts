@@ -15,6 +15,7 @@ describe('decideToolAccess', () => {
       'mcp__quant__factor_draft_set_output',
       'mcp__quant__factor_draft_save',
       'mcp__quant__preview_factor',
+      'mcp__quant__preview_factor_step',
       'mcp__quant__run_factor_backtest',
     ]) {
       expect(decideToolAccess(toolName)).toEqual({ kind: 'allow' })
@@ -80,6 +81,7 @@ describe('decideToolAccess', () => {
         'mcp__quant__factor_draft_delete',
         'mcp__quant__factor_draft_save',
         'mcp__quant__preview_factor',
+        'mcp__quant__preview_factor_step',
         'mcp__quant__run_factor_backtest',
       ].sort(),
     )

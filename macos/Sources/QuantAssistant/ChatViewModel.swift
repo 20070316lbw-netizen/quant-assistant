@@ -54,9 +54,9 @@ final class ChatViewModel: ObservableObject {
     // 路径先写死在这——手册 11.2 节要求 Swift 只启动固定的一个 dsh 子进程，
     // 参数不能从聊天内容拼，所以配置成常量而不是可自由填写的输入框正好符合
     // 这条设计原则。等做设置界面时再挪成用户可改的受信任配置。
-    private let dshPath = "/Users/liu/code/quant-assistant/node_modules/.bin/dsh"
+    private let dshPath = "/Users/liu/quant/quant-assistant/node_modules/.bin/dsh"
     private let profile = "quant-acp"
-    private let workingDirectory = "/Users/liu/code/quant-assistant"
+    private let workingDirectory = "/Users/liu/quant/quant-assistant"
 
     func start() {
         guard sessionId == nil else { return }
